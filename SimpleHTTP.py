@@ -1,67 +1,40 @@
 #!/usr/bin/env python
-"""
-Very simple HTTP server in python.
-Usage::
-    ./dummy-web-server.py [<port>]
-Send a GET request::
-    curl http://localhost
-Send a HEAD request::
-    curl -I http://localhost
-Send a POST request::
-    curl -d "foo=bar&bin=baz" http://localhost
-"""
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import DownloadFile
+from urlparse import parse_qs
+
+import StatusFunctions
+import json
+import time
 
 
-import StatusFunctions, json
+class MainHandler(BaseHTTPRequestHandler):
 
-class S(BaseHTTPRequestHandler):
-
-
-    def _set_headers(self):
+    def _set_headers(self, content_type="text/html"):
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-type', content_type)
         self.end_headers()
 
     def do_GET(self):
-        self._set_headers()
+        self._set_headers("application/json")
 
-        print(self.path)
-        if self.path=="/freeSpace":
-           print (StatusFunctions.StatusFunc())
-           self.wfile.write((StatusFunctions.StatusFunc()))
-
-    def do_HEAD(self):
-        self._set_headers()
+        if self.path == "/systemStatus":
+            print (StatusFunctions.StatusFunc())
+            self.wfile.write((StatusFunctions.StatusFunc()))
 
     def do_POST(self):
-        # Doesn't do anything with posted data
-        if self.path=='/downloadfile':
-            a=self.rfile.read(int(self.headers['Content-Length']))
-            a=json.loads(a)
-            print(a)
-
-
         self._set_headers()
-        self.wfile.write("<html><body><h1>POST!</h1></body></html>")
+
+        if self.path == '/downloadFile':
+            post_parameters = parse_qs(self.rfile.read(int(self.headers['Content-Length'])))
+            self.wfile.write(json.dumps(post_parameters))
 
 
-def run(server_class=HTTPServer, handler_class=S, port=1025):
+def run(server_class=HTTPServer, handler_class=MainHandler, port=80):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print 'Starting httpd...'
+    print '[%s] Listener Started' % time.strftime("%H:%M:%S")
     httpd.serve_forever()
 
 
-
 if __name__ == "__main__":
-    from sys import argv
-
-    if len(argv) == 2:
-        run(port=int(argv[1]))
-    else:
-        run()
-
-
-
+    run(HTTPServer, MainHandler, 1025)

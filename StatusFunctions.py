@@ -1,35 +1,52 @@
-import HardDriveStatus
-import json,psutil
+import json, psutil
 
 
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
 
 def StatusFunc():
-    hds = HardDriveStatus
     hdd = {}
     ram = {}
     cpu = {}
     general = {}
 
-    # DepolamaAlani Bilgileri
-    hdd["DepolamaAlani"] = hds.diskTotal
-    hdd["Kullanilmayan"] = hds.freeSpace
-    hdd["Kullanilan"] = hds.diskUsed
-    hdd["Doluluk%"] = hds.diskPercent
-    # Ram Bilgileri
-    ram["ToplamHafiza"] = hds.memTotal
-    ram["BosHafiza"] = hds.memFree
-    ram["Kullanilan"] = hds.memUsed
-    # Cpu Bilgileri
-    cpu["CPUKullanimYuzdesi"] = hds.cpuStats
-    cpu["CPUsayisi"] = hds.cpuNumber
-    # self.wfile.write(json.dumps(hdd))
+    diskUsage = psutil.disk_usage(".")
+    diskTotal = sizeof_fmt(diskUsage.total)
+    diskUsed = sizeof_fmt(diskUsage.used)
+    freeSpace = sizeof_fmt(diskUsage.free)
+    diskPercent = diskUsage.percent
 
-    # self.wfile.write(json.dumps(ram))
+    # per Cpu Times
+    cpuStats = psutil.cpu_percent(interval=1, percpu=False)
+    cpuNumber = psutil.cpu_count()
+
+    # Memory Information
+    memGeneralInfos = psutil.virtual_memory()
+    memTotal = sizeof_fmt(memGeneralInfos.total)
+    memUsed = sizeof_fmt(memGeneralInfos.used)
+    memFree = sizeof_fmt(memGeneralInfos.free)
+
+    # Depolama Alani Bilgileri
+    hdd["DepolamaAlani"] = diskTotal
+    hdd["Kullanilmayan"] = freeSpace
+    hdd["Kullanilan"] = diskUsed
+    hdd["Doluluk%"] = diskPercent
+
+    # Ram Bilgileri
+    ram["ToplamHafiza"] = memTotal
+    ram["BosHafiza"] = memFree
+    ram["Kullanilan"] = memUsed
+
+    # Cpu Bilgileri
+    cpu["CPUKullanimYuzdesi"] = cpuStats
+    cpu["CPUsayisi"] = cpuNumber
+
     general["HardDisk"] = hdd
     general["cpu"] = cpu
     general["Ram"] = ram
 
-
-    a=json.dumps(general)
-
-    return a
+    return json.dumps(general)
