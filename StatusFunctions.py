@@ -1,4 +1,5 @@
-import json, psutil
+import json
+import psutil as ps
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -8,27 +9,14 @@ def sizeof_fmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
-def StatusFunc():
+
+def hddInfo():
     hdd = {}
-    ram = {}
-    cpu = {}
-    general = {}
-
-    diskUsage = psutil.disk_usage(".")
-    diskTotal = sizeof_fmt(diskUsage.total)
-    diskUsed = sizeof_fmt(diskUsage.used)
-    freeSpace = sizeof_fmt(diskUsage.free)
+    diskUsage = ps.disk_usage(".")
+    diskTotal = diskUsage.total
+    diskUsed = diskUsage.used
+    freeSpace = diskUsage.free
     diskPercent = diskUsage.percent
-
-    # per Cpu Times
-    cpuStats = psutil.cpu_percent(interval=1, percpu=False)
-    cpuNumber = psutil.cpu_count()
-
-    # Memory Information
-    memGeneralInfos = psutil.virtual_memory()
-    memTotal = sizeof_fmt(memGeneralInfos.total)
-    memUsed = sizeof_fmt(memGeneralInfos.used)
-    memFree = sizeof_fmt(memGeneralInfos.free)
 
     # Depolama Alani Bilgileri
     hdd["DepolamaAlani"] = diskTotal
@@ -36,17 +24,45 @@ def StatusFunc():
     hdd["Kullanilan"] = diskUsed
     hdd["Doluluk%"] = diskPercent
 
-    # Ram Bilgileri
-    ram["ToplamHafiza"] = memTotal
-    ram["BosHafiza"] = memFree
-    ram["Kullanilan"] = memUsed
+    return hdd
+
+def cpuInfo():
+    cpu = {}
+    # per Cpu Times
+    cpuStats = ps.cpu_percent(interval=1, percpu=False)
+    cpuNumber = ps.cpu_count()
 
     # Cpu Bilgileri
     cpu["CPUKullanimYuzdesi"] = cpuStats
     cpu["CPUsayisi"] = cpuNumber
 
-    general["HardDisk"] = hdd
-    general["cpu"] = cpu
-    general["Ram"] = ram
+    return cpu
+
+def memInfo():
+    ram ={}
+    # Memory Information
+    memGeneralInfos = ps.virtual_memory()
+    memTotal = memGeneralInfos.total
+    memUsed = memGeneralInfos.used
+    memFree = memGeneralInfos.free
+
+    # Ram Bilgileri
+    ram["ToplamHafiza"] = memTotal
+    ram["BosHafiza"] = memFree
+    ram["Kullanilan"] = memUsed
+
+    return ram
+
+def StatusFunc():
+
+    general = {}
+    general["HardDisk"] = hddInfo()
+    general["cpu"] = cpuInfo()
+    general["Ram"] = memInfo()
 
     return json.dumps(general)
+
+def humanReadable():
+    huread={}
+    huread["bosAlan"]=sizeof_fmt(hddInfo()['Kullanilmayan'])
+    return huread
